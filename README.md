@@ -9,18 +9,21 @@ This library was created to allow you with one include to have:
 3. SPIFSS management tool.
 4. OTA over http.
 
-This library uses the following dependencies you need to install: 
+
+##dependencies
+This library uses the following libraries you need to install: 
 
 https://github.com/me-no-dev/ESPAsyncWebServer
 
 Only for ESP32 
-https://github.com/me-no-dev/AsyncTCP
+- https://github.com/me-no-dev/AsyncTCP
 
 Only for ESP8266
-https://github.com/me-no-dev/ESPAsyncTCP
-https://github.com/datacute/DoubleResetDetector
+- https://github.com/me-no-dev/ESPAsyncTCP
+- https://github.com/datacute/DoubleResetDetector
 
 
+##SPIFFS.
 All the files in the library are served and stored on the SPIFFS.
 In order to get the tool running on the ESP you will need to upload the files.
 To do so, you can download the following tool, and place it in a "tools" library in your sketchbook folder.
@@ -52,18 +55,18 @@ it will be redirected to the main page of the configuration tool
 
 The page has 3 links:
 
-Wifi setup
+##Wifi setup
 This page allows you to set up to 3 router/password for the system to check for connection.
 Once save is hit, the file gets re-written and the ESP will restart and try connecting using the new data.
 
-OTA
+##OTA
 Pre compile the firmware on your computer and use this page to upload and flash a new firmware to the ESP.
 
-SPIFFS Manager
+##SPIFFS Manager
 Allow you to browse, download or delete files from the SPIFSS, note not to delete any system files :) 
 
 
-Code:
+##Code:
 
 In order to use it you will first have to import it 
 ```cpp
@@ -77,23 +80,24 @@ wifiTool.begin();
 ```
 This will run the auto connect system, and if no available router is found it will automatically run the AP.
 
-Now if you want a bit more control on how things run you can do the following :
+Now if you want a bit more control on how things run you can do the following:
 ```cpp
 wifiTool.begin(false);
 ```
 This will run the auto connect system, but if no connection is found - it’s does not run the AP
-then we can check the state of the system with: 
-```cpp
-wifiTool.wifiAutoConnect();
-```
 
-which will return True if connection is open and false if not.
 
-In the example we use that to print debug and the run the AP 
+this way then we can check the state of the system with: 
+
 ```cpp
-Serial.println("fail to connect to wifi!!!!");
-wifiTool.runApPortal() 
+if (!wifiTool.wifiAutoConnect())
+  {
+    Serial.println("fail to connect to wifi!!!!");
+    wifiTool.runApPortal();
+  }
 ```
+In the example we use this feature to print debug and the run the AP 
+
 
 Another usefull command in the system is 
 ```cpp
@@ -103,6 +107,6 @@ which will run the portal on the existing wifi connection.
 even if you have a web server running in your firmware this will over ride its settings. 
 
 
-ESP8266 Dbl restart deduction was added so if you hit the reset button twice (fast enough) 
-it will force a running of the AP
+##ESP8266 Dbl restart deduction 
+We added a Dbl restart deduction and it will force a running of the AP.
 
