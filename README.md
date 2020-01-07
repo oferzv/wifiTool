@@ -10,7 +10,7 @@ This library was created to allow you with one include to have:
 4. OTA over http.
 
 
-##dependencies
+## dependencies
 This library uses the following libraries you need to install: 
 
 https://github.com/me-no-dev/ESPAsyncWebServer
@@ -23,7 +23,7 @@ Only for ESP8266
 - https://github.com/datacute/DoubleResetDetector
 
 
-##SPIFFS.
+## SPIFFS.
 All the files in the library are served and stored on the SPIFFS.
 In order to get the tool running on the ESP you will need to upload the files.
 To do so, you can download the following tool, and place it in a "tools" library in your sketchbook folder.
@@ -55,18 +55,18 @@ it will be redirected to the main page of the configuration tool
 
 The page has 3 links:
 
-##Wifi setup
+## Wifi setup
 This page allows you to set up to 3 router/password for the system to check for connection.
 Once save is hit, the file gets re-written and the ESP will restart and try connecting using the new data.
 
-##OTA
+## OTA
 Pre compile the firmware on your computer and use this page to upload and flash a new firmware to the ESP.
 
-##SPIFFS Manager
+## SPIFFS Manager
 Allow you to browse, download or delete files from the SPIFSS, note not to delete any system files :) 
 
 
-##Code:
+## Code:
 
 In order to use it you will first have to import it 
 ```cpp
@@ -107,6 +107,6 @@ which will run the portal on the existing wifi connection.
 even if you have a web server running in your firmware this will over ride its settings. 
 
 
-##ESP8266 Dbl restart deduction 
+## ESP8266 Dbl restart deduction 
 We added a Dbl restart deduction and it will force a running of the AP.
 
