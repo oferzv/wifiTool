@@ -66,26 +66,40 @@ Allow you to browse, download or delete files from the SPIFSS, note not to delet
 Code:
 
 In order to use it you will first have to import it 
-
+```cpp
 #include "wifiTool.h"
 WifiTool wifiTool;
+```
 
 The simple way to run it is just adding this in the setup. 
-wifiTool.begin() 
+```cpp
+wifiTool.begin();
+```
 This will run the auto connect system, and if no available router is found it will automatically run the AP.
 
 Now if you want a bit more control on how things run you can do the following :
+```cpp
 wifiTool.begin(false);
+```
 This will run the auto connect system, but if no connection is found - it’s does not run the AP
 then we can check the state of the system with: 
-wifiTool.wifiAutoConnect() - which will return True if connection is open and false if not.
+```cpp
+wifiTool.wifiAutoConnect();
+```
 
-In the example we use that to run the following command 
-wifiTool.runApPortal() - which runs the AP. 
-This way we can print debug before. 
+which will return True if connection is open and false if not.
+
+In the example we use that to print debug and the run the AP 
+```cpp
+Serial.println("fail to connect to wifi!!!!");
+wifiTool.runApPortal() 
+```
 
 Another usefull command in the system is 
-wifiTool.runWifiPortal() - which will run the portal on the existing wifi connection. 
+```cpp
+wifiTool.runWifiPortal() 
+```
+which will run the portal on the existing wifi connection. 
 even if you have a web server running in your firmware this will over ride its settings. 
 
 
