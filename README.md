@@ -70,7 +70,7 @@ Allow you to browse, download or delete files from the SPIFSS, note not to delet
 
 In order to use it you will first have to import it 
 ```cpp
-#include "wifiTool.h"
+#include <wifiTool.h>
 WifiTool wifiTool;
 ```
 
