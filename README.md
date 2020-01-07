@@ -26,14 +26,22 @@ In order to get the tool running on the ESP you will need to upload the files.
 To do so, you can download the following tool, and place it in a "tools" library in your sketchbook folder.
 
 ESP8266
+
 https://github.com/esp8266/arduino-esp8266fs-plugin
-Download JAR file from - https://github.com/esp8266/arduino-esp8266fs-plugin/releases/tag/0.5.0
+
+Download JAR file from 
+https://github.com/esp8266/arduino-esp8266fs-plugin/releases/tag/0.5.0
+
 ESP32
+
 https://github.com/me-no-dev/arduino-esp32fs-plugin
-Download JAR file from - https://github.com/me-no-dev/arduino-esp32fs-plugin/releases/tag/1.0
+
+Download JAR file from
+https://github.com/me-no-dev/arduino-esp32fs-plugin/releases/tag/1.0
 
 The files are stored in the "data" library. and you will need to upload the, with the uplod tool 
 in order for the firmware to work well.  
+
 The router - password are kept in a json file named "secrets.json" so you can set the data before uploading the 
 data into the SPIFSS, this way you do not even have to run the wifi manger the first time.
 And it contains all the HTML pages as well. 
