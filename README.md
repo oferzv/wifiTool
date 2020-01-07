@@ -110,3 +110,9 @@ even if you have a web server running in your firmware this will over ride its s
 ## ESP8266 Dbl restart deduction 
 We added a Dbl restart deduction and it will force a running of the AP.
 
+For this feature to work, we use this great library
+https://github.com/datacute/DoubleResetDetector
+
+
+
+
