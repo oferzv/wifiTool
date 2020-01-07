@@ -1,3 +1,13 @@
+/**************************************************************
+   wifiTool is a library for the ESP 8266&32/Arduino platform
+   SPIFFS oriented AsyncWebServer based wifi configuration tool.
+   https://github.com/oferzv/wifiTool
+   
+   Built by Ofer Zvik (https://github.com/oferzv)
+   And Tal Ofer (https://github.com/talofer99)
+   Licensed under MIT license
+ **************************************************************/
+
 #ifndef WIFITOOL_h
 #define WIFITOOL_h
 
