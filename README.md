@@ -6,7 +6,7 @@ SPIFFS oriented AsyncWebServer based wifi configuration tool.
 This library was created to allow you with one include to have:
 1. auto wifi connect, with up to 3 saved router/password with easy wifi configuration tool.
 2. AP access when no wifi is connected with captive - for easy access.
-3. SPIFSS management tool.
+3. SPIFFS management tool.
 4. OTA over http.
 
 
