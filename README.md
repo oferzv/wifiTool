@@ -114,5 +114,6 @@ For this feature to work, we use this great library
 https://github.com/datacute/DoubleResetDetector
 
 
-
+## How to install tutorial 
+https://www.youtube.com/watch?v=8XnBupiNGEI
 
