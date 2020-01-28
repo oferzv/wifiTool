@@ -246,6 +246,7 @@ uint8_t WifiTool::wifiAutoConnect()
 
 void WifiTool::runApPortal()
 {
+  runAP = true;
   setUpAPService();
   runWifiPortal();
 }
