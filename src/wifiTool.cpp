@@ -427,7 +427,7 @@ void WifiTool::runWifiPortal() {
     request->send(response);
 
 
-  }, [&, this](AsyncWebServerRequest * request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+    }, [&, this](AsyncWebServerRequest * request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
     if (!index) {
       Serial.printf("Update Start: %s\n", filename.c_str());
 
@@ -454,6 +454,11 @@ void WifiTool::runWifiPortal() {
         Update.printError(Serial);
       }
     }
+  });
+
+  server->on("/restart", HTTP_GET, [&, this](AsyncWebServerRequest * request) {
+    request->send(200, "text/html", "OK");
+    restartSystem = millis();
   });
 
   server->onNotFound([](AsyncWebServerRequest * request) {
