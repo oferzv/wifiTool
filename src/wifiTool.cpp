@@ -11,6 +11,7 @@
 #include "Arduino.h"
 #include "wifiTool.h"
 
+
 /*
     class CaptiveRequestHandler
 */
@@ -36,9 +37,6 @@ class CaptiveRequestHandler : public AsyncWebHandler {
 WifiTool::WifiTool()
 {
   runAP = false;
-#if defined(ESP8266)
-  drd.reset(new DoubleResetDetector(2, 0));
-#endif
 }
 
 
@@ -51,29 +49,10 @@ void WifiTool::begin()
 }
 
 void WifiTool::begin(uint8_t autoConnectFlag) {
-#if defined(ESP32)
-  boolean isDblReser = false;
-#else
-  boolean isDblReser = drd->detectDoubleReset();
-#endif
-  if (isDblReser) {
-    Serial.println("Double Reset Detected");
-    WiFi.begin("", ""); // clear any last saved parameters
-    delay(50);
-    // drd stop
-#if defined(ESP8266)
-    drd->stop();
-#endif
     runAP = true;
     setUpAPService();
     // run the portal
     runWifiPortal();
-  } else {
-    delay(1000); // giving us up to 1 second to hit dbl reset
-    // drd stop to prevent dbl click
-#if defined(ESP8266)
-    drd->stop();
-#endif
     if (autoConnectFlag)
     {
       if (!wifiAutoConnect())
@@ -82,7 +61,6 @@ void WifiTool::begin(uint8_t autoConnectFlag) {
         runWifiPortal();
       } //end if
     } //end if
-  } //end if
 }
 
 /*
@@ -103,13 +81,18 @@ void WifiTool::process() {
   } //end if
 }
 
-/*
-    connectAttempt(String ssid, String password)
+/**
+ *   connectAttempt(String ssid, String password)
+ *  @param[in]    ssid connect to AP named ssid.
+ *                 If no ssid is passed then attempt to connect last known wifi
+ *  @param[in]   password password
+ *  @return  true  the wifi is connected to the AP named:ssid
+ *           false didnt connected to the AP named:ssid
 */
 boolean WifiTool::connectAttempt(String ssid, String password) {
   boolean isWiFiConnected = false;
   // set mode
-  WiFi.mode(WIFI_STA);
+  WiFi.mode(DEF_WIFI_MODE);
   // if no SSID is passed we attempt last connected wifi (from WIFI object)
   if (ssid == "") {
 	if (WiFi.status() != WL_CONNECTED) {
@@ -349,14 +332,14 @@ void WifiTool::setUpAPService()
 {
   Serial.println(F("RUN AP"));
   dnsServer.reset(new DNSServer());
-  WiFi.mode(WIFI_AP);
-  WiFi.softAPConfig(IPAddress(172, 217, 28, 1), IPAddress(172, 217, 28, 1), IPAddress(255, 255, 255, 0));
-  WiFi.softAP("config");
+  WiFi.mode(DEF_WIFI_MODE);
+  WiFi.softAP(DEF_AP_NAME,DEF_AP_PASSW);
+  WiFi.softAPConfig(IPAddress(DEF_AP_IP), IPAddress(DEF_GATEWAY_IP), IPAddress(DEF_SUBNETMASK));
   delay(500);
 
   /* Setup the DNS server redirecting all the domains to the apIP */
   dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
-  dnsServer->start(DNS_PORT, "*", IPAddress(172, 217, 28, 1));
+  dnsServer->start(DNS_PORT, "*", IPAddress(DEF_DNS_IP));
 
   //Serial.println("dns server config done");
 
@@ -427,7 +410,7 @@ void WifiTool::runWifiPortal() {
     request->send(response);
 
 
-    }, [&, this](AsyncWebServerRequest * request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+  }, [&, this](AsyncWebServerRequest * request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
     if (!index) {
       Serial.printf("Update Start: %s\n", filename.c_str());
 
@@ -454,11 +437,6 @@ void WifiTool::runWifiPortal() {
         Update.printError(Serial);
       }
     }
-  });
-
-  server->on("/restart", HTTP_GET, [&, this](AsyncWebServerRequest * request) {
-    request->send(200, "text/html", "OK");
-    restartSystem = millis();
   });
 
   server->onNotFound([](AsyncWebServerRequest * request) {
