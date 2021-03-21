@@ -1,4 +1,4 @@
-# wifiToolS
+# wifiTool
 ESP8266 &amp; ESP32 wifi tool
 
 SPIFFS oriented AsyncWebServer based wifi configuration tool.

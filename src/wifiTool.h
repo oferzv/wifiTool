@@ -21,13 +21,17 @@
 #include <ESPmDNS.h>
 #include <WiFi.h>
 #include <AsyncTCP.h>
+#include <WiFiMulti.h>
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
 #include <ESPAsyncTCP.h>
 #include <ESP8266mDNS.h>
+#include <ESP8266WiFiMulti.h>
 #endif
+
 #include <ESPAsyncWebServer.h>
 #include <SPIFFSEditor.h>
+
 
 #include "definitions.h"
 
@@ -35,14 +39,14 @@ class WifiTool
 {
 public:
   WifiTool();
-  uint8_t wifiAutoConnect();
-  void runApPortal();
-  void runWifiPortal();
+  ~WifiTool();
   void process();
-  void begin();
-  void begin(uint8_t autoConnectFlag);
 
 private:
+  void setUpmDNS();
+  void setUpSoftAP();
+  void setUpSTAService();
+
   std::unique_ptr<DNSServer> dnsServer;
 #if defined(ESP32)
   std::unique_ptr<AsyncWebServer> server;
@@ -50,22 +54,42 @@ private:
   std::unique_ptr<AsyncWebServer> server;
 #endif
   File fsUploadFile;
-
-  boolean runAP;
-
-  // DNS server
   const byte DNS_PORT = DEF_DNS_PORT;
-  void updateUpload();
-  void setUpAPService();
-  boolean connectAttempt(String ssid, String password);
+
+  String filetoString(const char* path);
   String getJSONValueByKey(String textToSearch, String key);
+  void updateUpload();
   void handleFileList(AsyncWebServerRequest *request);
   void handleFileDelete(AsyncWebServerRequest *request);
   void getWifiScanJson(AsyncWebServerRequest *request);
   void handleGetSavSecreteJson(AsyncWebServerRequest *request);
   int getRSSIasQuality(int RSSI);
-  unsigned long restartSystem;
   void handleUpload(AsyncWebServerRequest *request, String filename, String redirect, size_t index, uint8_t *data, size_t len, bool final);
+
+  //???kell?
+  boolean connectAttempt(String ssid, String password);
+
+  /*public:
+  WifiTool();
+  uint8_t wifiAutoConnect();
+  void runApPortal();
+  void runWifiPortal();
+  
+  void begin();
+  void begin(uint8_t autoConnectFlag);
+
+private:
+
+  boolean runAP;
+
+  // DNS server
+  
+  
+  void setUpAPService();
+  boolean connectAttempt(String ssid, String password);
+  
+  
+  */
 };
 
 #endif

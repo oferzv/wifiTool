@@ -15,11 +15,8 @@
 //Set the subnet mask
 #define DEF_SUBNETMASK      255,255,255,0
 
-//AP name
-#define DEF_AP_NAME         "my_esp_AP"
-
-//AP password
-#define DEF_AP_PASSW        "secretword"
+//SoftAP name
+#define DEF_AP_NAME         "esp_AP"
 
 //DNS port
 #define DEF_DNS_PORT        53
