@@ -32,20 +32,19 @@
 #include <ESPAsyncWebServer.h>
 #include <SPIFFSEditor.h>
 
-
 #include "definitions.h"
 
 class WifiTool
 {
 public:
+  
   WifiTool();
   ~WifiTool();
   void process();
 
 private:
-  void setUpmDNS();
   void setUpSoftAP();
-  void setUpSTAService();
+  void setUpSTA();
 
   std::unique_ptr<DNSServer> dnsServer;
 #if defined(ESP32)
@@ -54,7 +53,12 @@ private:
   std::unique_ptr<AsyncWebServer> server;
 #endif
   File fsUploadFile;
-  const byte DNS_PORT = DEF_DNS_PORT;
+
+  #ifdef ESP32
+  WiFiMulti* _wm;
+  #elif defined(ESP8266)
+  ESP8266WiFiMulti* _wm;
+  #endif
 
   String filetoString(const char* path);
   String getJSONValueByKey(String textToSearch, String key);

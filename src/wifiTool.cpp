@@ -39,6 +39,11 @@ public:
 WifiTool::WifiTool()
 {
   setUpSoftAP();
+  setUpSTA();
+}
+
+WifiTool::~WifiTool()
+{
 }
 
 /*
@@ -138,7 +143,6 @@ String WifiTool::getJSONValueByKey(String textToSearch, String key)
 
   return textToSearch.substring(fromPosition);
 } //end get json by value
-
 
 /*
    getRSSIasQuality(int RSSI)
@@ -244,18 +248,45 @@ void WifiTool::handleGetSavSecreteJson(AsyncWebServerRequest *request)
 
   request->send(200, "text/html", "<h1>Restarting .....</h1>");
 }
+/**
+  * setUpSTA()
+  * Setup the Station mode
+*/
+void WifiTool::setUpSTA()
+{
+  String json = filetoString(SECRETS_PATH);
+  if (json == "" || json == nullptr)
+  {
+    Serial.println(F("Can't open the secret file."));
+    return;
+  }
 
+  #ifdef ESP32
+  _wm = new WiFiMulti;
+  #elif defined(ESP8266)
+  _wm = new ESP8266WiFiMulti;
+  #endif
+
+  for (byte i = 1; i < 4; i++) {
+        String _ssid = getJSONValueByKey(json, "ssid" + String(i));
+        String _pass = getJSONValueByKey(json, "pass" + String(i));
+        if(_ssid != "")
+        {
+          _wm->addAP(_ssid.c_str(),_pass.c_str());
+        }
+      } //end for
+}
 /**
   * setUpSoftAP()
   * Setting up the SoftAP Service
 */
-
-void WifiTool::setUpSoftAP(){
+void WifiTool::setUpSoftAP()
+{
   Serial.println(F("RUN AP"));
   dnsServer.reset(new DNSServer());
   ///WiFi.mode(DEF_WIFI_MODE);
 
-  WiFi.softAP(DEF_AP_NAME, getJSONValueByKey(filetoString(SECRETS_PATH), "APpassw"));
+  WiFi.softAP(DEF_AP_NAME, getJSONValueByKey(filetoString(SECRETS_PATH),"APpassw").c_str());
   WiFi.softAPConfig(IPAddress(DEF_AP_IP), IPAddress(DEF_GATEWAY_IP), IPAddress(DEF_SUBNETMASK));
   delay(500);
 
@@ -265,16 +296,16 @@ void WifiTool::setUpSoftAP(){
 
   //Serial.println("dns server config done");
 
-  #if defined(ESP32)
+#if defined(ESP32)
   server.reset(new AsyncWebServer(80));
 #else
   server.reset(new AsyncWebServer(80));
 #endif
 
-Serial.print(F("SoftAP IP address: "));
-Serial.println(WiFi.softAPIP());
+  Serial.print(F("SoftAP IP address: "));
+  Serial.println(WiFi.softAPIP());
 
-// start spiff
+  // start spiff
   if (!SPIFFS.begin())
   {
     // Serious problem
@@ -316,11 +347,10 @@ Serial.println(WiFi.softAPIP());
   server->on(
       "/update", HTTP_POST, [&, this](AsyncWebServerRequest *request) {
         uint8_t isSuccess = !Update.hasError();
-        
+
         AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", isSuccess ? "OK" : "FAIL");
         response->addHeader("Connection", "close");
-        request->send(response);
-      },
+        request->send(response); },
       [&, this](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
         if (!index)
         {
@@ -513,3 +543,5 @@ String WifiTool::filetoString(const char *path)
     }
     return content;
   }
+  return String("");
+}
