@@ -38,8 +38,9 @@ public:
 */
 WifiTool::WifiTool()
 {
+  WiFi.mode(DEF_WIFI_MODE);
   setUpSoftAP();
-  setUpSTA();
+  //setUpSTA();
 }
 
 WifiTool::~WifiTool()
@@ -78,13 +79,7 @@ boolean WifiTool::connectAttempt(String ssid, String password)
   }
   else
   {
-    int ssidSize = ssid.length() + 1;
-    int passwordSize = password.length() + 1;
-    char ssidArray[ssidSize];
-    char passwordArray[passwordSize];
-    ssid.toCharArray(ssidArray, ssidSize);
-    password.toCharArray(passwordArray, passwordSize);
-    WiFi.begin(ssidArray, passwordArray);
+    WiFi.begin(ssid.c_str(), password.c_str());
   } //end if
 
   Serial.print(F("\nConnecting Wifi..."));
@@ -254,6 +249,7 @@ void WifiTool::handleGetSavSecreteJson(AsyncWebServerRequest *request)
 */
 void WifiTool::setUpSTA()
 {
+  vektknownaps.resize(3);
   String json = filetoString(SECRETS_PATH);
   if (json == "" || json == nullptr)
   {
@@ -261,18 +257,12 @@ void WifiTool::setUpSTA()
     return;
   }
 
-  #ifdef ESP32
-  _wm = new WiFiMulti;
-  #elif defined(ESP8266)
-  _wm = new ESP8266WiFiMulti;
-  #endif
-
   for (byte i = 1; i < 4; i++) {
         String _ssid = getJSONValueByKey(json, "ssid" + String(i));
         String _pass = getJSONValueByKey(json, "pass" + String(i));
         if(_ssid != "")
         {
-          _wm->addAP(_ssid.c_str(),_pass.c_str());
+          
         }
       } //end for
 }
@@ -537,11 +527,12 @@ String WifiTool::filetoString(const char *path)
     } //end if
 
     // read file
+    
     while (f.available())
     {
       content += char(f.read());
     }
-    return content;
+    return content;//f.readString();
   }
   return String("");
 }

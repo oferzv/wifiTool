@@ -1,10 +1,10 @@
 //enum WiFiMode can be:WIFI_OFF, WIFI_STA, WIFI_AP, WIFI_AP_STA
 //* these two pseudo modes are experimental:WIFI_SHUTDOWN = 4, WIFI_RESUME = 8
-#define DEF_WIFI_MODE      WIFI_AP_STA
+#define DEF_WIFI_MODE       WIFI_AP_STA
 
 #define WAIT_FOR_WIFI_TIME_OUT 6000UL
 
-#define SECRETS_PATH "/secrets.json"
+#define SECRETS_PATH        "/secrets.json"
 
 //Set the accespoint ip
 #define DEF_AP_IP           192,168,4,1

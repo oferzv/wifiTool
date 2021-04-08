@@ -11,8 +11,9 @@
 #ifndef WIFITOOL_h
 #define WIFITOOL_h
 
-#include "Arduino.h"
+#include <Arduino.h>
 #include <DNSServer.h>
+#include <vector>
 
 #include <ArduinoOTA.h>
 #ifdef ESP32
@@ -21,12 +22,10 @@
 #include <ESPmDNS.h>
 #include <WiFi.h>
 #include <AsyncTCP.h>
-#include <WiFiMulti.h>
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
 #include <ESPAsyncTCP.h>
 #include <ESP8266mDNS.h>
-#include <ESP8266WiFiMulti.h>
 #endif
 
 #include <ESPAsyncWebServer.h>
@@ -37,7 +36,6 @@
 class WifiTool
 {
 public:
-  
   WifiTool();
   ~WifiTool();
   void process();
@@ -52,15 +50,16 @@ private:
 #else
   std::unique_ptr<AsyncWebServer> server;
 #endif
+
+  struct knownapsstruct
+  {
+    String *ssid;
+    String *passw;
+  };
+  std::vector<knownapsstruct> vektknownaps;
   File fsUploadFile;
 
-  #ifdef ESP32
-  WiFiMulti* _wm;
-  #elif defined(ESP8266)
-  ESP8266WiFiMulti* _wm;
-  #endif
-
-  String filetoString(const char* path);
+  String filetoString(const char *path);
   String getJSONValueByKey(String textToSearch, String key);
   void updateUpload();
   void handleFileList(AsyncWebServerRequest *request);
