@@ -46,7 +46,6 @@ public:
 
 void WifiTool::begin()
 {
-  //WiFi.mode(WIFI_AP_STA);
   setUpSoftAP();
   setUpSTA();
 }
