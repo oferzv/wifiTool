@@ -29,22 +29,61 @@ public:
 
   void handleRequest(AsyncWebServerRequest *request)
   {
-    request->redirect("/wifi_index.html");
+    String RedirectUrl = "http://";
+    if (ON_STA_FILTER(request))
+    {
+      RedirectUrl += WiFi.localIP().toString();
+    }
+    else
+    {
+      RedirectUrl += WiFi.softAPIP().toString();
+    }
+    RedirectUrl += "/wifi_index.html";
+    Serial.println(RedirectUrl);
+    request->redirect(RedirectUrl);
   }
 };
 
+void WifiTool::begin()
+{
+  //WiFi.mode(WIFI_AP_STA);
+  setUpSoftAP();
+  setUpSTA();
+}
 /*
     WifiTool()
 */
 WifiTool::WifiTool()
 {
-  WiFi.mode(DEF_WIFI_MODE);
-  setUpSoftAP();
-  //setUpSTA();
+  _restartsystem = 0;
+  _last_connect_atempt = 0;
+  _last_connected_network = 0;
+  _connecting = false;
+
+  WiFi.mode(WIFI_AP_STA);
+  // start spiff
+  if (!SPIFFS.begin())
+  {
+    // Serious problem
+    Serial.println(F("SPIFFS Mount failed"));
+    return;
+  } //end if
 }
 
 WifiTool::~WifiTool()
 {
+  for (auto entry : vektknownaps)
+  {
+    if (entry.ssid)
+    {
+      free(entry.ssid);
+    }
+    if (entry.passw)
+    {
+      free(entry.passw);
+    }
+  }
+  vektknownaps.clear();
 }
 
 /*
@@ -53,58 +92,58 @@ WifiTool::~WifiTool()
 void WifiTool::process()
 {
   ///DNS
+  yield();
   dnsServer->processNextRequest();
+  wifiAutoConnect();
+  if (_restartsystem)
+  {
+    if (_restartsystem + 2000 < millis())
+    {
+      ESP.restart();
+    } //end if
+  }   //end if
 }
 
-/**
- *   connectAttempt(String ssid, String password)
- *  @param[in]    ssid connect to AP named ssid.
- *                 If no ssid is passed then attempt to connect last known wifi
- *  @param[in]   password password
- *  @return  true  the wifi is connected to the AP named:ssid
- *           false didnt connected to the AP named:ssid
-*/
-boolean WifiTool::connectAttempt(String ssid, String password)
+void WifiTool::wifiAutoConnect()
 {
-  boolean isWiFiConnected = false;
-  // set mode
-  WiFi.mode(DEF_WIFI_MODE);
-  // if no SSID is passed we attempt last connected wifi (from WIFI object)
-  if (ssid == "")
+  if (WiFi.status() != WL_CONNECTED && !_connecting)
   {
-    if (WiFi.status() != WL_CONNECTED)
+    Serial.println(F("\nNo WiFi connection."));
+    if (vektknownaps.at(_last_connected_network).ssid != "")
     {
-      WiFi.begin();
+      WiFi.begin(vektknownaps.at(_last_connected_network).ssid,
+                 vektknownaps.at(_last_connected_network).passw);
     }
+    _last_connect_atempt = millis();
+    _connecting = true;
   }
-  else
+  else if (WiFi.status() != WL_CONNECTED && _connecting && (millis() > _last_connect_atempt + WAIT_FOR_WIFI_TIME_OUT))
   {
-    WiFi.begin(ssid.c_str(), password.c_str());
-  } //end if
+    if (++_last_connected_network >= 3)
+      _last_connected_network = 0;
 
-  Serial.print(F("\nConnecting Wifi..."));
-  unsigned long now = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() < now + WAIT_FOR_WIFI_TIME_OUT)
-  {
-    Serial.print(".");
-    delay(250);
+    WiFi.begin(vektknownaps.at(_last_connected_network).ssid,
+                 vektknownaps.at(_last_connected_network).passw);
+    _last_connect_atempt = millis();
   }
-  Serial.print(F("\nStatus:"));
-  Serial.println(WiFi.status());
-  if (WiFi.status() == WL_CONNECTED)
+  else if (WiFi.status() == WL_CONNECTED && _connecting)
   {
-    Serial.println(F("\nWiFi connected"));
+    _connecting = false;
+    Serial.println(F("\nWiFi connected."));
     Serial.println(F("IP address: "));
     Serial.println(WiFi.localIP());
     Serial.print(F("ssid: "));
     Serial.println(WiFi.SSID());
-    //Serial.print(F("password: "));
-    //Serial.println(WiFi.psk());
-    isWiFiConnected = true;
-  }
+  } 
 
-  return isWiFiConnected;
-}
+} //end void
+
+/**
+ *   connectAttempt(String ssid, String password)
+ *  @param[in]    ssid connect to AP named as ssid 
+ *                 If no ssid is passed then attempt to connect last known wifi
+ *  @param[in]   password password
+*/
 
 /*
     getJSONValueByKey(String textToSearch, String key)
@@ -135,7 +174,6 @@ String WifiTool::getJSONValueByKey(String textToSearch, String key)
     return String("");
   }
   textToSearch.remove(toPosition);
-
   return textToSearch.substring(fromPosition);
 } //end get json by value
 
@@ -199,16 +237,27 @@ void WifiTool::getWifiScanJson(AsyncWebServerRequest *request)
 */
 void WifiTool::handleGetSavSecreteJson(AsyncWebServerRequest *request)
 {
+
   AsyncWebParameter *p;
   String jsonString = "{";
   jsonString.concat("\"APpassw\":\"");
-  p = request->getParam("APpassw", true);
+  p = request->getParam("APpass", true);
   jsonString.concat(p->value());
+  jsonString.concat("\",");
+
+  jsonString.concat("\"ssid0\":\"");
+  p = request->getParam("ssid0", true);
+  jsonString.concat(p->value());
+  jsonString.concat("\",");
+
+  jsonString.concat("\"pass0\":\"");
+  p = request->getParam("pass0", true);
+  jsonString.concat(p->value().c_str());
   jsonString.concat("\",");
 
   jsonString.concat("\"ssid1\":\"");
   p = request->getParam("ssid1", true);
-  jsonString.concat(p->value());
+  jsonString.concat(p->value().c_str());
   jsonString.concat("\",");
 
   jsonString.concat("\"pass1\":\"");
@@ -224,24 +273,19 @@ void WifiTool::handleGetSavSecreteJson(AsyncWebServerRequest *request)
   jsonString.concat("\"pass2\":\"");
   p = request->getParam("pass2", true);
   jsonString.concat(p->value().c_str());
-  jsonString.concat("\",");
-
-  jsonString.concat("\"ssid3\":\"");
-  p = request->getParam("ssid3", true);
-  jsonString.concat(p->value().c_str());
-  jsonString.concat("\",");
-
-  jsonString.concat("\"pass3\":\"");
-  p = request->getParam("pass3", true);
-  jsonString.concat(p->value().c_str());
-
   jsonString.concat("\"}");
 
   File file = SPIFFS.open(SECRETS_PATH, "w");
+  if (!file)
+  {
+    Serial.println("Error opening file for writing");
+    return;
+  }
   file.print(jsonString);
   file.close();
 
   request->send(200, "text/html", "<h1>Restarting .....</h1>");
+  _restartsystem = millis();
 }
 /**
   * setUpSTA()
@@ -249,7 +293,6 @@ void WifiTool::handleGetSavSecreteJson(AsyncWebServerRequest *request)
 */
 void WifiTool::setUpSTA()
 {
-  vektknownaps.resize(3);
   String json = filetoString(SECRETS_PATH);
   if (json == "" || json == nullptr)
   {
@@ -257,14 +300,16 @@ void WifiTool::setUpSTA()
     return;
   }
 
-  for (byte i = 1; i < 4; i++) {
-        String _ssid = getJSONValueByKey(json, "ssid" + String(i));
-        String _pass = getJSONValueByKey(json, "pass" + String(i));
-        if(_ssid != "")
-        {
-          
-        }
-      } //end for
+  for (byte i = 0; i < 3; i++)
+  {
+    String assid = getJSONValueByKey(json, "ssid" + String(i));
+    String apass = getJSONValueByKey(json, "pass" + String(i));
+
+    knownapsstruct apstr;
+    apstr.ssid = strdup(assid.c_str());
+    apstr.passw = strdup(apass.c_str());
+    vektknownaps.push_back(apstr);
+  } //end for
 }
 /**
   * setUpSoftAP()
@@ -274,13 +319,16 @@ void WifiTool::setUpSoftAP()
 {
   Serial.println(F("RUN AP"));
   dnsServer.reset(new DNSServer());
-  ///WiFi.mode(DEF_WIFI_MODE);
-
-  WiFi.softAP(DEF_AP_NAME, getJSONValueByKey(filetoString(SECRETS_PATH),"APpassw").c_str());
-  WiFi.softAPConfig(IPAddress(DEF_AP_IP), IPAddress(DEF_GATEWAY_IP), IPAddress(DEF_SUBNETMASK));
+  WiFi.softAP(DEF_AP_NAME,
+              getJSONValueByKey(filetoString(SECRETS_PATH),
+                                "APpassw")
+                  .c_str());
+  WiFi.softAPConfig(IPAddress(DEF_AP_IP),
+                    IPAddress(DEF_GATEWAY_IP),
+                    IPAddress(DEF_SUBNETMASK));
   delay(500);
 
-  /* Setup the DNS server redirecting all the domains to the apIP */
+  // Setup the DNS server redirecting all the domains to the apIP
   dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
   dnsServer->start(DEF_DNS_PORT, "*", IPAddress(DEF_DNS_IP));
 
@@ -295,15 +343,7 @@ void WifiTool::setUpSoftAP()
   Serial.print(F("SoftAP IP address: "));
   Serial.println(WiFi.softAPIP());
 
-  // start spiff
-  if (!SPIFFS.begin())
-  {
-    // Serious problem
-    Serial.println(F("SPIFFS Mount failed"));
-    return;
-  } //end if
-
-  server->serveStatic("/", SPIFFS, "/").setDefaultFile("wifi_index.html");
+  server->serveStatic("/", SPIFFS, "/").setDefaultFile("/wifi_index.html");
 
   server->on("/saveSecret/", HTTP_ANY, [&, this](AsyncWebServerRequest *request) {
     handleGetSavSecreteJson(request);
@@ -380,19 +420,18 @@ void WifiTool::setUpSoftAP()
       });
 
   server->onNotFound([](AsyncWebServerRequest *request) {
-    Serial.println("handle not found");
+    Serial.println("handle not found+");
     request->send(404);
   });
 
   server->addHandler(new CaptiveRequestHandler()).setFilter(ON_AP_FILTER); //only when requested from AP
-
-  Serial.println(F("HTTP server started"));
+  Serial.println(F("HTTP server started."));
   server->begin();
 }
 
 void WifiTool::handleFileList(AsyncWebServerRequest *request)
 {
-  Serial.println("handle fle list");
+  Serial.println("handle file list");
   if (!request->hasParam("dir"))
   {
     request->send(500, "text/plain", "BAD ARGS");
@@ -527,12 +566,13 @@ String WifiTool::filetoString(const char *path)
     } //end if
 
     // read file
-    
+
     while (f.available())
     {
       content += char(f.read());
     }
-    return content;//f.readString();
+    f.close();
+    return content; //f.readString();
   }
   return String("");
 }

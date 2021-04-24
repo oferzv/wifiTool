@@ -33,16 +33,27 @@
 
 #include "definitions.h"
 
+struct knownapsstruct
+  {
+    char *ssid;
+    char *passw;
+  };
+
 class WifiTool
 {
 public:
   WifiTool();
   ~WifiTool();
   void process();
+  void begin();
 
 private:
   void setUpSoftAP();
   void setUpSTA();
+  unsigned long _restartsystem;
+  unsigned long _last_connect_atempt;
+  bool  _connecting;
+  byte  _last_connected_network;
 
   std::unique_ptr<DNSServer> dnsServer;
 #if defined(ESP32)
@@ -51,14 +62,8 @@ private:
   std::unique_ptr<AsyncWebServer> server;
 #endif
 
-  struct knownapsstruct
-  {
-    String *ssid;
-    String *passw;
-  };
   std::vector<knownapsstruct> vektknownaps;
   File fsUploadFile;
-
   String filetoString(const char *path);
   String getJSONValueByKey(String textToSearch, String key);
   void updateUpload();
@@ -68,31 +73,7 @@ private:
   void handleGetSavSecreteJson(AsyncWebServerRequest *request);
   int getRSSIasQuality(int RSSI);
   void handleUpload(AsyncWebServerRequest *request, String filename, String redirect, size_t index, uint8_t *data, size_t len, bool final);
-
-  //???kell?
-  boolean connectAttempt(String ssid, String password);
-
-  /*public:
-  WifiTool();
-  uint8_t wifiAutoConnect();
-  void runApPortal();
-  void runWifiPortal();
-  
-  void begin();
-  void begin(uint8_t autoConnectFlag);
-
-private:
-
-  boolean runAP;
-
-  // DNS server
-  
-  
-  void setUpAPService();
-  boolean connectAttempt(String ssid, String password);
-  
-  
-  */
+  void wifiAutoConnect(); 
 };
 
 #endif
