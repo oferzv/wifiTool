@@ -39,7 +39,7 @@ public:
       RedirectUrl += WiFi.softAPIP().toString();
     }
     RedirectUrl += "/wifi_index.html";
-    Serial.println(RedirectUrl);
+    //Serial.println(RedirectUrl);
     request->redirect(RedirectUrl);
   }
 };
