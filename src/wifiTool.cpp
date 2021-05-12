@@ -64,7 +64,7 @@ WifiTool::WifiTool()
   if (!SPIFFS.begin())
   {
     // Serious problem
-    Serial.println(F("SPIFFS Mount failed"));
+    Serial.println(F("SPIFFS Mount failed."));
     return;
   } //end if
 }
@@ -73,14 +73,8 @@ WifiTool::~WifiTool()
 {
   for (auto entry : vektknownaps)
   {
-    if (entry.ssid)
-    {
-      free(entry.ssid);
-    }
-    if (entry.passw)
-    {
-      free(entry.passw);
-    }
+    entry.ssid.clear();
+    entry.passw.clear();
   }
   vektknownaps.clear();
 }
@@ -96,7 +90,7 @@ void WifiTool::process()
   wifiAutoConnect();
   if (_restartsystem)
   {
-    if (_restartsystem + 2000 < millis())
+    if ((unsigned long)millis()-_restartsystem > 2000)
     {
       ESP.restart();
     } //end if
@@ -268,7 +262,7 @@ void WifiTool::handleSaveNTPJson(AsyncWebServerRequest *request)
   
   AsyncWebParameter *p;
   String jsonString = "{";
-  jsonString.concat("\"NTPserver0\":\"");
+  jsonString.concat("\"NTPserver\":\"");
   p = request->getParam("NTPserver", true);
   jsonString.concat(p->value().c_str());
   jsonString.concat("\",");
@@ -299,7 +293,7 @@ void WifiTool::handleSaveNTPJson(AsyncWebServerRequest *request)
   file.print(jsonString);
   file.flush();
   file.close();
-  request->redirect("/wifi_NTP.html ");
+  request->redirect("/wifi_NTP.html");
 }
 /**
   * setUpSTA()
@@ -318,11 +312,17 @@ void WifiTool::setUpSTA()
   {
     String assid = _sjsonp.GetJSONValueByKey(json, "ssid" + String(i));
     String apass = _sjsonp.GetJSONValueByKey(json, "pass" + String(i));
-
+/*
     knownapsstruct apstr;
     apstr.ssid = strdup(assid.c_str());
     apstr.passw = strdup(apass.c_str());
+    vektknownaps.push_back(apstr);*/
+
+    knownapsstruct apstr;
+    apstr.ssid = String(assid);
+    apstr.passw = String(apass);
     vektknownaps.push_back(apstr);
+
   } //end for
 }
 /**

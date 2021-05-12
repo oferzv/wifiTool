@@ -34,11 +34,17 @@
 
 #include "definitions.h"
 
-struct knownapsstruct
+/*struct knownapsstruct
   {
     char *ssid;
     char *passw;
-  };
+  };*/
+
+ struct knownapsstruct
+  {
+    String ssid;
+    String passw;
+  }; 
 
 class WifiTool
 {
