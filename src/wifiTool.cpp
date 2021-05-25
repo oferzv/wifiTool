@@ -10,7 +10,7 @@
 
 #include "Arduino.h"
 #include "wifiTool.h"
-
+#include <stdlib.h>
 /*
     class CaptiveRequestHandler
 */
@@ -52,13 +52,13 @@ void WifiTool::begin()
 /*
     WifiTool()
 */
-WifiTool::WifiTool()
+WifiTool::WifiTool(strDateTime &strdt, NTPtime &ntp_):_strdt(strdt),_ntp(ntp_)
 {
-  _restartsystem = 0;
-  _last_connect_atempt = 0;
+  _restartsystem          = 0;
+  _last_connect_atempt    = 0;
   _last_connected_network = 0;
-  _connecting = false;
-
+  _connecting             = false;
+  
   WiFi.mode(WIFI_AP_STA);
   // start spiff
   if (!SPIFFS.begin())
@@ -197,9 +197,17 @@ void WifiTool::getWifiScanJson(AsyncWebServerRequest *request)
 
 void WifiTool::getNTPJson(AsyncWebServerRequest *request)
 {
-  String json=_sjsonp.FileToString("/ntp.json");
+  String json=_sjsonp.fileToString("/ntp.json");
   request->send(200, "application/json", json);
 }
+void WifiTool::getThingspeakJson(AsyncWebServerRequest *request)
+{
+  String json=_sjsonp.fileToString("/thingspeak.json");
+  request->send(200, "application/json", json);
+}
+
+
+
 /*
    handleGetSavSecreteJson()
 */
@@ -295,13 +303,60 @@ void WifiTool::handleSaveNTPJson(AsyncWebServerRequest *request)
   file.close();
   request->redirect("/wifi_NTP.html");
 }
+
+void WifiTool::handleSaveThingspeakJson(AsyncWebServerRequest *request)
+{ 
+  AsyncWebParameter *p;
+  String jsonString = "{";
+  jsonString.concat("\"ChannelID\":\"");
+  p = request->getParam("ChannelID", true);
+  jsonString.concat(p->value().c_str());
+  jsonString.concat("\",");
+
+  jsonString.concat("\"WriteAPIKey\":\"");
+  p = request->getParam("WriteAPIKey", true);
+  jsonString.concat(p->value().c_str());
+  jsonString.concat("\"}");
+
+  Serial.println(jsonString);
+
+  File file = SPIFFS.open("/thingspeak.json", "w");
+  if (!file)
+  {
+    Serial.println(F("Error opening file for writing"));
+    return;
+  }
+  file.print(jsonString);
+  file.flush();
+  file.close();
+  request->redirect("/wifi_thingspeak.html");
+}
+
+void WifiTool::handleSendTime(AsyncWebServerRequest *request)
+{
+  AsyncWebParameter *p;
+  p = request->getParam("time", true);
+  if(_strdt.epochTime==0 && p != nullptr)
+  {  
+    char atm[11];
+    memset(atm,0,11);
+    strncpy(atm,p->value().c_str(),10);
+    char* ptr;
+    unsigned long  b;
+    b=strtoul(atm, &ptr, 10);//string to unsigned long
+    b=_ntp.adjustTimeZone(b,_ntp.getUtcHour(),_ntp.getUtcMin(),_ntp.getSTDST());
+    _strdt=_ntp.ConvertUnixTimestamp(b);
+  }
+  request->send(200);
+}
+
 /**
   * setUpSTA()
   * Setup the Station mode
 */
 void WifiTool::setUpSTA()
 {
-  String json = _sjsonp.FileToString(SECRETS_PATH);
+  String json = _sjsonp.fileToString(SECRETS_PATH);
   if (json == "" || json == nullptr)
   {
     Serial.println(F("Can't open the secret file."));
@@ -310,8 +365,8 @@ void WifiTool::setUpSTA()
 
   for (byte i = 0; i < 3; i++)
   {
-    String assid = _sjsonp.GetJSONValueByKey(json, "ssid" + String(i));
-    String apass = _sjsonp.GetJSONValueByKey(json, "pass" + String(i));
+    String assid = _sjsonp.getJSONValueByKey(json, "ssid" + String(i));
+    String apass = _sjsonp.getJSONValueByKey(json, "pass" + String(i));
 /*
     knownapsstruct apstr;
     apstr.ssid = strdup(assid.c_str());
@@ -334,7 +389,7 @@ void WifiTool::setUpSoftAP()
   Serial.println(F("RUN AP"));
   dnsServer.reset(new DNSServer());
   WiFi.softAP(DEF_AP_NAME,
-              _sjsonp.GetJSONValueByKey(_sjsonp.FileToString(SECRETS_PATH),
+              _sjsonp.getJSONValueByKey(_sjsonp.fileToString(SECRETS_PATH),
                                         "APpassw").c_str());
   WiFi.softAPConfig(IPAddress(DEF_AP_IP),
                     IPAddress(DEF_GATEWAY_IP),
@@ -366,6 +421,10 @@ void WifiTool::setUpSoftAP()
     handleSaveNTPJson(request);
   });
 
+   server->on("/sendTime/", HTTP_POST, [&, this](AsyncWebServerRequest *request) {
+    handleSendTime(request);
+  });
+
   server->on("/list", HTTP_ANY, [&, this](AsyncWebServerRequest *request) {
     handleFileList(request);
   });
@@ -389,6 +448,10 @@ void WifiTool::setUpSoftAP()
 
   server->on("/ntp.json", HTTP_GET, [&, this](AsyncWebServerRequest *request) {
     getNTPJson(request);
+  });
+
+  server->on("/thingspeak.json", HTTP_GET, [&, this](AsyncWebServerRequest *request) {
+    getThingspeakJson(request);
   });
 
   // Simple Firmware Update Form
