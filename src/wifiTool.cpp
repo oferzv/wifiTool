@@ -71,12 +71,7 @@ WifiTool::WifiTool(strDateTime &strdt, NTPtime &ntp_):_strdt(strdt),_ntp(ntp_)
 
 WifiTool::~WifiTool()
 {
-  for (auto entry : vektknownaps)
-  {
-    entry.ssid.clear();
-    entry.passw.clear();
-  }
-  vektknownaps.clear();
+  _apscredit.clear();
 }
 
 /*
@@ -102,10 +97,10 @@ void WifiTool::wifiAutoConnect()
   if (WiFi.status() != WL_CONNECTED && !_connecting)
   {
     Serial.println(F("\nNo WiFi connection."));
-    if (vektknownaps.at(_last_connected_network).ssid != "")
+    if(_apscredit.at(_last_connected_network).first!="")
     {
-      WiFi.begin(vektknownaps.at(_last_connected_network).ssid,
-                 vektknownaps.at(_last_connected_network).passw);
+      WiFi.begin(_apscredit.at(_last_connected_network).first,
+                _apscredit.at(_last_connected_network).second);          
     }
     _last_connect_atempt = millis();
     _connecting = true;
@@ -114,9 +109,8 @@ void WifiTool::wifiAutoConnect()
   {
     if (++_last_connected_network >= 3)
       _last_connected_network = 0;
-
-    WiFi.begin(vektknownaps.at(_last_connected_network).ssid,
-               vektknownaps.at(_last_connected_network).passw);
+    WiFi.begin(_apscredit.at(_last_connected_network).first,
+                _apscredit.at(_last_connected_network).second);
     _last_connect_atempt = millis();
   }
   else if (WiFi.status() == WL_CONNECTED && _connecting)
@@ -130,14 +124,6 @@ void WifiTool::wifiAutoConnect()
   } 
 
 } //end void
-
-/**
- *   connectAttempt(String ssid, String password)
- *  @param[in]    ssid connect to AP named as ssid 
- *                 If no ssid is passed then attempt to connect last known wifi
- *  @param[in]   password password
-*/
-
 
 
 /*
@@ -367,16 +353,8 @@ void WifiTool::setUpSTA()
   {
     String assid = _sjsonp.getJSONValueByKey(json, "ssid" + String(i));
     String apass = _sjsonp.getJSONValueByKey(json, "pass" + String(i));
-/*
-    knownapsstruct apstr;
-    apstr.ssid = strdup(assid.c_str());
-    apstr.passw = strdup(apass.c_str());
-    vektknownaps.push_back(apstr);*/
 
-    knownapsstruct apstr;
-    apstr.ssid = String(assid);
-    apstr.passw = String(apass);
-    vektknownaps.push_back(apstr);
+    _apscredit.push_back(std::make_pair(assid,apass));
 
   } //end for
 }

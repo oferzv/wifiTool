@@ -14,6 +14,7 @@
 #include <Arduino.h>
 #include <DNSServer.h>
 #include <vector>
+#include <utility>
 
 #include <ArduinoOTA.h>
 #ifdef ESP32
@@ -35,11 +36,6 @@
 
 #include "definitions.h"
 
- struct knownapsstruct
-  {
-    String ssid;
-    String passw;
-  }; 
 
 class WifiTool
 {
@@ -59,7 +55,7 @@ private:
   SimpleJsonParser  _sjsonp;
   strDateTime&      _strdt;
   NTPtime&          _ntp;
-  std::vector<knownapsstruct> vektknownaps;
+  std::vector< std::pair <String,String> > _apscredit;
   File              fsUploadFile;
 
   std::unique_ptr<DNSServer> dnsServer;
