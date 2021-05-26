@@ -97,10 +97,10 @@ void WifiTool::wifiAutoConnect()
   if (WiFi.status() != WL_CONNECTED && !_connecting)
   {
     Serial.println(F("\nNo WiFi connection."));
-    if(_apscredit.at(_last_connected_network).first!="")
+    if(_apscredit[_last_connected_network].first!="")
     {
-      WiFi.begin(_apscredit.at(_last_connected_network).first,
-                _apscredit.at(_last_connected_network).second);          
+      WiFi.begin(_apscredit[_last_connected_network].first,
+                _apscredit[_last_connected_network].second);          
     }
     _last_connect_atempt = millis();
     _connecting = true;
@@ -109,8 +109,8 @@ void WifiTool::wifiAutoConnect()
   {
     if (++_last_connected_network >= 3)
       _last_connected_network = 0;
-    WiFi.begin(_apscredit.at(_last_connected_network).first,
-                _apscredit.at(_last_connected_network).second);
+    WiFi.begin(_apscredit[_last_connected_network].first,
+                _apscredit[_last_connected_network].second);
     _last_connect_atempt = millis();
   }
   else if (WiFi.status() == WL_CONNECTED && _connecting)
