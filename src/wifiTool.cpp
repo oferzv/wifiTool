@@ -351,8 +351,8 @@ void WifiTool::setUpSTA()
 
   for (byte i = 0; i < 3; i++)
   {
-    String assid = _sjsonp.getJSONValueByKey(json, "ssid" + String(i));
-    String apass = _sjsonp.getJSONValueByKey(json, "pass" + String(i));
+    String assid = _sjsonp.getJSONValueByKeyFromString(json, "ssid" + String(i));
+    String apass = _sjsonp.getJSONValueByKeyFromString(json, "pass" + String(i));
 
     _apscredit.push_back(std::make_pair(assid,apass));
 
@@ -367,7 +367,7 @@ void WifiTool::setUpSoftAP()
   Serial.println(F("RUN AP"));
   dnsServer.reset(new DNSServer());
   WiFi.softAP(DEF_AP_NAME,
-              _sjsonp.getJSONValueByKey(_sjsonp.fileToString(SECRETS_PATH),
+              _sjsonp.getJSONValueByKey(SECRETS_PATH,
                                         "APpassw").c_str());
   WiFi.softAPConfig(IPAddress(DEF_AP_IP),
                     IPAddress(DEF_GATEWAY_IP),
