@@ -3,7 +3,8 @@
 #define SECRETS_PATH        "/secrets.json"
 
 //Set the accespoint ip
-#define DEF_AP_IP           172, 217, 28, 1
+//#define DEF_AP_IP           172, 217, 28, 1
+#define DEF_AP_IP             172, 217, 28, 1
 
 //Set the default gateway ip
 #define DEF_GATEWAY_IP      172, 217, 28, 1
@@ -18,4 +19,4 @@
 #define DEF_DNS_PORT        53
 
 //DNS IP
-#define DEF_DNS_IP          172, 217, 28, 1
+#define DEF_DNS_IP         172, 217, 28, 1

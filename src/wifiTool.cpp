@@ -60,6 +60,7 @@ WifiTool::WifiTool(strDateTime &strdt, NTPtime &ntp_):_strdt(strdt),_ntp(ntp_)
   _connecting             = false;
   
   WiFi.mode(WIFI_AP_STA);
+  
   // start spiff
   if (!SPIFFS.begin())
   {
@@ -85,8 +86,9 @@ void WifiTool::process()
   wifiAutoConnect();
   if (_restartsystem)
   {
-    if ((unsigned long)millis()-_restartsystem > 2000)
+    if ((unsigned long)millis()-_restartsystem > 60000)
     {
+      //Serial.println(F("Ujraindítom."));
       ESP.restart();
     } //end if
   }   //end if
@@ -105,7 +107,7 @@ void WifiTool::wifiAutoConnect()
     _last_connect_atempt = millis();
     _connecting = true;
   }
-  else if (WiFi.status() != WL_CONNECTED && _connecting && (millis() > _last_connect_atempt + WAIT_FOR_WIFI_TIME_OUT))
+  else if (WiFi.status() != WL_CONNECTED && _connecting && (millis() - _last_connect_atempt > WAIT_FOR_WIFI_TIME_OUT))
   {
     if (++_last_connected_network >= 3)
       _last_connected_network = 0;
@@ -366,19 +368,20 @@ void WifiTool::setUpSoftAP()
 {
   Serial.println(F("RUN AP"));
   dnsServer.reset(new DNSServer());
-  WiFi.softAP(DEF_AP_NAME,
-              _sjsonp.getJSONValueByKey(SECRETS_PATH,
-                                        "APpassw").c_str());
+  
   WiFi.softAPConfig(IPAddress(DEF_AP_IP),
                     IPAddress(DEF_GATEWAY_IP),
                     IPAddress(DEF_SUBNETMASK));
+  WiFi.softAP(DEF_AP_NAME,_sjsonp.getJSONValueByKey(SECRETS_PATH,"APpassw"),1,0,4);
+  
+  
   delay(500);
 
   // Setup the DNS server redirecting all the domains to the apIP
   dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
   dnsServer->start(DEF_DNS_PORT, "*", IPAddress(DEF_DNS_IP));
 
-  //Serial.println("dns server config done");
+  Serial.println(F("DNS server started."));
 
 #if defined(ESP32)
   server.reset(new AsyncWebServer(80));
@@ -386,7 +389,8 @@ void WifiTool::setUpSoftAP()
   server.reset(new AsyncWebServer(80));
 #endif
 
-  Serial.print(F("SoftAP IP address: "));
+  Serial.print(F("SoftAP name and server IP address: "));
+  Serial.print(String(DEF_AP_NAME)+"  ");
   Serial.println(WiFi.softAPIP());
 
   server->serveStatic("/", SPIFFS, "/").setDefaultFile("/wifi_index.html");
@@ -487,13 +491,13 @@ void WifiTool::setUpSoftAP()
   });
 
   server->addHandler(new CaptiveRequestHandler()).setFilter(ON_AP_FILTER); //only when requested from AP
-  Serial.println(F("HTTP server started."));
+  Serial.println(F("HTTP webserver started."));
   server->begin();
 }
 
 void WifiTool::handleFileList(AsyncWebServerRequest *request)
 {
-  Serial.println("handle file list");
+  //Serial.println("handle file list");
   if (!request->hasParam("dir"))
   {
     request->send(500, "text/plain", "BAD ARGS");
@@ -502,7 +506,7 @@ void WifiTool::handleFileList(AsyncWebServerRequest *request)
 
   AsyncWebParameter *p = request->getParam("dir");
   String path = p->value().c_str();
-  Serial.println("handleFileList: " + path);
+  //Serial.println("handleFileList: " + path);
   String output = "[";
 #if defined(ESP8266)
 
@@ -548,7 +552,7 @@ void WifiTool::handleFileList(AsyncWebServerRequest *request)
 
   path = String();
   output += "]";
-  Serial.println(output);
+  //Serial.println(output);
   request->send(200, "application/json", output);
 }
 
