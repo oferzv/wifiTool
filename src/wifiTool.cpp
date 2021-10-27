@@ -11,6 +11,8 @@
 #include "Arduino.h"
 #include "wifiTool.h"
 #include <stdlib.h>
+#include <string>
+
 /*
     class CaptiveRequestHandler
 */
@@ -266,16 +268,32 @@ void WifiTool::handleSaveNTPJson(AsyncWebServerRequest *request)
   jsonString.concat("\"UTCh\":\"");
   p = request->getParam("UTCh", true);
   jsonString.concat(p->value().c_str());
+  _ntp.setUtcHour((int8_t)p->value().toInt());
   jsonString.concat("\",");
 
   jsonString.concat("\"UTCm\":\"");
   p = request->getParam("UTCm", true);
   jsonString.concat(p->value().c_str());
+  _ntp.setUtcMin((uint8_t)abs(p->value().toInt()));
   jsonString.concat("\",");
 
   jsonString.concat("\"extratsh\":\"");
   p = request->getParam("extratsh", true);
-  jsonString.concat(p->value());
+  jsonString.concat(p->value().c_str());
+
+		if (p->value() == "ST")
+		{
+			_ntp.setSTDST(1);			//Summer Time
+		}
+		else if (p->value() == "DST")
+		{
+			_ntp.setSTDST(2);			//Daylight Saving Time
+		}
+		else
+		{
+			_ntp.setSTDST(0);
+		}
+  
   jsonString.concat("\"}");
 
   Serial.println(jsonString);
@@ -289,6 +307,7 @@ void WifiTool::handleSaveNTPJson(AsyncWebServerRequest *request)
   file.print(jsonString);
   file.flush();
   file.close();
+  
   request->redirect("/wifi_NTP.html");
 }
 
