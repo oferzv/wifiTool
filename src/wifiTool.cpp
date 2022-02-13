@@ -11,6 +11,9 @@
 #include "Arduino.h"
 #include "wifiTool.h"
 
+extern "C" uint32_t _FS_start;
+extern "C" uint32_t _FS_end;
+
 /*
     class CaptiveRequestHandler
 */
@@ -401,6 +404,10 @@ void WifiTool::runWifiPortal() {
   server->on("/edit", HTTP_DELETE, [&, this](AsyncWebServerRequest * request) {
     handleFileDelete(request);
   });
+  // spiff download
+  server->on("/download", HTTP_GET, [&, this](AsyncWebServerRequest *request)
+               { handleFileDownload(request); });
+
 
   // spiff upload
   server->on("/edit", HTTP_POST, [&, this](AsyncWebServerRequest * request) {},
@@ -418,43 +425,66 @@ void WifiTool::runWifiPortal() {
   server->on("/update", HTTP_GET, [&, this](AsyncWebServerRequest * request) {
     request->send(SPIFFS, "/wifi_upload.html");
   });
-  server->on("/update", HTTP_POST, [&, this](AsyncWebServerRequest * request) {
-    uint8_t isSuccess = !Update.hasError();
-    if (isSuccess)
-      restartSystem = millis();
-    AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", isSuccess ? "OK" : "FAIL");
-    response->addHeader("Connection", "close");
-    request->send(response);
+  server->on(
+      "/update", HTTP_POST, [&, this](AsyncWebServerRequest *request)
+        {
+            AsyncWebServerResponse *response = request->beginResponse((Update.hasError()) ? 500 : 200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
 
-
-    }, [&, this](AsyncWebServerRequest * request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
-    if (!index) {
-      Serial.printf("Update Start: %s\n", filename.c_str());
+            request->send(response);
+            yield();
+            delay(1000);
+            yield();
+            ESP.restart();
+        } ,
+        [&, this](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
+        {
+            if (!index)
+            {
+                Serial.printf("Update Start: %s\n", filename.c_str());
 
 #if defined(ESP8266)
-      Update.runAsync(true);
-      if (!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)) {
-        Update.printError(Serial);
-      }
+
+                String s = request->arg("firmwaretype");
+                Serial.println(s);
+                int cmd = (s == "filesystem") ? U_FS : U_FLASH;
+
+                Update.runAsync(true);
+                size_t fsSize = ((size_t)&_FS_end - (size_t)&_FS_start);
+                uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+                if (!Update.begin((cmd == U_FS) ? fsSize : maxSketchSpace, cmd))
+                {
+                    Update.printError(Serial);
+                    return request->send(400, "text/plain", "OTA could not begin");
+                }
 #else
-      if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {
-        Update.printError(Serial);
-      }
+                if (!Update.begin(UPDATE_SIZE_UNKNOWN, cmd))
+                {
+                    Update.printError(Serial);
+                    return request->send(400, "text/plain", "OTA could not begin");
+                }
 #endif
-    }
-    if (!Update.hasError()) {
-      if (Update.write(data, len) != len) {
-        Update.printError(Serial);
-      }
-    }
-    if (final) {
-      if (Update.end(true)) {
-        Serial.printf("Update Success: %uB\n", index + len);
-      } else {
-        Update.printError(Serial);
-      }
-    }
-  });
+            }
+            if (len)
+            {
+                if (Update.write(data, len) != len)
+                {
+                    Update.printError(Serial);
+                }
+            }
+            if (final)
+            {
+                if (Update.end(true))
+                {
+                    Serial.printf("Update Success: %uB\n", index + len);
+                    //request->send(200, "text/plain", "OK.");
+                }
+                else
+                {
+                    Update.printError(Serial);
+                }
+            }
+        }
+    );
 
   server->on("/restart", HTTP_GET, [&, this](AsyncWebServerRequest * request) {
     request->send(200, "text/html", "OK");
@@ -532,29 +562,58 @@ void WifiTool::handleFileList(AsyncWebServerRequest *request) {
 }
 
 
-void WifiTool::handleFileDelete(AsyncWebServerRequest * request) {
-  Serial.println("in file delete");
-  if (request->params() == 0) {
-    return request->send(500, "text/plain", "BAD ARGS");
-  }
-  AsyncWebParameter* p = request->getParam(0);
-  String path = p->value();
-  Serial.println("handleFileDelete: " + path);
-  if (path == "/") {
-    return request->send(500, "text/plain", "BAD PATH");
-  }
+void WifiTool::handleFileDelete(AsyncWebServerRequest *request)
+{
+    //Serial.println(F("in file delete"));
+    if (request->params() == 0)
+    {
+        return request->send(500, "text/plain", "BAD ARGS");
+    }
 
-  if (!SPIFFS.exists(path)) {
-    return request->send(404, "text/plain", "FileNotFound");
-  }
+    String path = String(request->arg(0u));
 
-  SPIFFS.remove(path);
-  request->send(200, "text/plain", "");
-  path = String();
+    Serial.println("handleFileDelete: " + path);
+    if (path == "/")
+    {
+        return request->send(500, "text/plain", "BAD PATH");
+    }
+
+    if (!SPIFFS.exists(path))
+    {
+        return request->send(404, "text/plain", "FileNotFound");
+    }
+
+    SPIFFS.remove(path);
+    request->send(200, "text/plain", "");
+    path = String();
 }
 
+void WifiTool::handleFileDownload(AsyncWebServerRequest *request)
+{
+    if (request->params() == 0)
+    {
+        return request->send(500, "text/plain", "BAD ARGS");
+    }
 
+    AsyncWebParameter *p = request->getParam(0);
+    String s = p->value();
+    String path = "/" + s;
+    Serial.println("handleFileDownload: " + path);
+    if (path == "/")
+    {
+        return request->send(500, "text/plain", "BAD PATH");
+    }
 
+    if (!SPIFFS.exists(path))
+    {
+        return request->send(404, "text/plain", "FileNotFound");
+    }
+    AsyncWebServerResponse *response = request->beginResponse(SPIFFS, path, String(), true);
+
+    // request->send(SPIFFS, path, "application/x-download", true);
+
+    request->send(response);
+}
 //==============================================================
 //   handleUpload
 //==============================================================

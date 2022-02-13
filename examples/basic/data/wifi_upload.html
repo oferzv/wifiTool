@@ -6,51 +6,90 @@
 
 <head>
 	<title>ESP8266 & ESP32 Management Portal - OTA</title>
-	<script src='/jquery.min.js'></script>  <!-- https://ajax.googleapis.com/ajax/libs/jquery/3.2.1 -->
+	<meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 </head>
 <body>
 <div>
 <h1>ESP8266 & ESP32 Management Portal - OTA</h1>
-<BR><BR>
-<form method='POST' action='wifi_spiffs_admin.html' enctype='multipart/form-data' id='upload_form'>
-   <input type='file' name='update'>
-        <input type='submit' value='Update'>
+<br>
+<form method="POST" action="/update" enctype="multipart/form-data" id="upload_form">
+        <div align="center">
+            <input type="radio" id="firmware" name="firmwaretype" value="firmware" checked />
+            <label for="firmware">firmware</label>
+            <input type="radio" id="filesystem" name="firmwaretype" value="filesystem" />
+            <label for="filesystem">filesystem</label>
+        <br>
+            <input type="file" id="ufile" name="ufile" />
+            <input type="submit" value="Update" />
+        </div>
     </form>
- <div id='prg'>progress: 0%</div>
- 
- 
+ <div id="prg">progress: 0%</div>
 </div>
+ <script>
+	  document
+            .getElementById("upload_form")
+            .addEventListener("submit", function (e) {
+                e.preventDefault();
+                uploadFile();
+            });
 
+        function uploadFile() {
+            if (document.getElementById("ufile").files.length == 0) {
+                document.getElementById("prg").innerHTML = "No file selected.";
+                return;
+            }
+            var file = document.getElementById("ufile").files[0];
+            // alert(file.name+" | "+file.size+" | "+file.type);
+            let formdata = new FormData();
+            let c = document.querySelector(
+                "input[name = firmwaretype ]:checked"
+            ).value;
+            formdata.append("firmwaretype", c);
 
-<script>
-  $('form').submit(function(e){
-  e.preventDefault();
-  var form = $('#upload_form')[0];
-  var data = new FormData(form);
-   $.ajax({
-  url: '/update',
-  type: 'POST',
-  data: data,
-  contentType: false,
-  processData:false,
-  xhr: function() {
-  var xhr = new window.XMLHttpRequest();
-  xhr.upload.addEventListener('progress', function(evt) {
-  if (evt.lengthComputable) {
-  var per = evt.loaded / evt.total;
-  $('#prg').html('progress: ' + Math.round(per*100) + '%');
-  }
-  }, false);
-  return xhr;
-  },
-  success:function(d, s) {
-  console.log('success!') 
-  $('#prg').html('success!');
- },
- error: function (a, b, c) {
- }
- });
- });
+            formdata.append("ufile", file);
+            var ajax = new XMLHttpRequest();
+            ajax.onreadystatechange = function() {
+            if (this.readyState == 4 && (this.status == 200 || this.status==500 ))
+             {
+                document.getElementById("prg").innerHTML = this.responseText;
+	         }
+            };
+
+            ajax.upload.addEventListener("progress", progressHandler, false);
+            ajax.upload.addEventListener("loadend", transferComplete, false);
+            ajax.upload.addEventListener("load", transferComplete, false);
+            ajax.upload.addEventListener("error", errorHandler, false);
+            ajax.upload.addEventListener("abort", abortHandler, false);
+            ajax.open("POST", "/update");
+            ajax.send(formdata);
+        }
+
+        function progressHandler(event) {
+            var percent = (event.loaded / event.total) * 100;
+            document.getElementById("prg").innerHTML =
+                "Uploaded " +
+                event.loaded +
+                " bytes of " +
+                event.total +
+                " " +
+                Math.round(percent) +
+                "% uploaded... please wait";
+        }
+
+        function transferComplete(event) {
+            document.getElementById("prg").innerHTML ="Upload success. Restarting...";
+            document.getElementById("upload_form").reset();
+        }
+
+        function errorHandler(event) {
+            document.getElementById("prg").innerHTML = "Upload Failed.";
+        }
+
+        function abortHandler(event) {
+            document.getElementById("prg").innerHTML = "Upload Aborted.";
+        }
+  
  </script>
  
 </body>

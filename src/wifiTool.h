@@ -62,6 +62,7 @@ class WifiTool
     String getJSONValueByKey(String textToSearch, String key);
     void handleFileList(AsyncWebServerRequest *request);
     void handleFileDelete(AsyncWebServerRequest * request);
+    void handleFileDownload(AsyncWebServerRequest *request);
     void getWifiScanJson(AsyncWebServerRequest * request);
     void handleGetSavSecreteJson(AsyncWebServerRequest *request);
     int getRSSIasQuality(int RSSI);

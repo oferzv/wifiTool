@@ -61,9 +61,10 @@ Once save is hit, the file gets re-written and the ESP will restart and try conn
 
 ## OTA
 Pre compile the firmware on your computer and use this page to upload and flash a new firmware to the ESP.
+Or upload a spiffs filesystem form a precompiled spiffs.bin file.
 
 ## SPIFFS Manager
-Allow you to browse, download or delete files from the SPIFSS, note not to delete any system files :) 
+Allow you to browse, download, upload or delete files from the SPIFSS, note not to delete any system files :) 
 
 
 ## Code:
